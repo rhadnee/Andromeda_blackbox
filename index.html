@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Andromeda Recorder — Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     ANDROMEDA RECORDER — Professional Studio Interface
+     Web-based · MediaRecorder API · WebRTC
+══════════════════════════════════════════════════ -->
+
+<!-- Recording Indicator (top-left, always visible while recording) -->
+<div class="rec-indicator" id="recIndicator">
+  <span class="rec-dot"></span>
+  <span class="rec-label">REC</span>
+  <span class="rec-timer" id="indicatorTimer">00:00</span>
+</div>
+
+<!-- Watermark overlay (appears on preview + can be toggled) -->
+<div class="watermark" id="watermark">
+  <span class="wm-logo">⬡</span>
+  <span class="wm-text">ANDROMEDA</span>
+</div>
+
+<!-- ══ MAIN APP SHELL ══ -->
+<div class="app-shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <span class="logo-icon">⬡</span>
+      <div>
+        <span class="logo-name">Andromeda</span>
+        <span class="logo-sub">Recorder</span>
+      </div>
+    </div>
+
+    <!-- Keyboard shortcut hints -->
+    <div class="shortcut-hints">
+      <div class="hint"><kbd>Space</kbd> Start / Pause</div>
+      <div class="hint"><kbd>S</kbd> Stop</div>
+      <div class="hint"><kbd>W</kbd> Toggle Webcam</div>
+      <div class="hint"><kbd>M</kbd> Mute Mic</div>
+      <div class="hint"><kbd>Esc</kbd> Cancel</div>
+    </div>
+
+    <!-- Source selection -->
+    <div class="sidebar-section">
+      <div class="section-label">CAPTURE SOURCE</div>
+
+      <div class="source-group">
+        <label class="toggle-row" id="screenToggleRow">
+          <div class="toggle-info">
+            <span class="toggle-icon">🖥️</span>
+            <div>
+              <span class="toggle-title">Screen</span>
+              <span class="toggle-sub">Full • Window • Tab</span>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="screenToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </label>
+
+        <div class="sub-options" id="screenSubOptions">
+          <select class="mini-select" id="screenQuality">
+            <option value="720">720p</option>
+            <option value="1080" selected>1080p</option>
+            <option value="1440">1440p (if supported)</option>
+          </select>
+          <select class="mini-select" id="frameRate">
+            <option value="24">24 fps</option>
+            <option value="30" selected>30 fps</option>
+            <option value="60">60 fps</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="source-group">
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-icon">🎙️</span>
+            <div>
+              <span class="toggle-title">Microphone</span>
+              <span class="toggle-sub">Voice narration</span>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="micToggle" checked>
+            <span class="slider"></span>
+          </label>
+        </label>
+        <div class="sub-options">
+          <div class="mic-level-wrap">
+            <div class="mic-level-bar">
+              <div class="mic-level-fill" id="micLevelFill"></div>
+            </div>
+            <span class="mic-level-label">Level</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="source-group">
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-icon">🔊</span>
+            <div>
+              <span class="toggle-title">System Audio</span>
+              <span class="toggle-sub">App + browser sounds</span>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="sysAudioToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+      </div>
+
+      <div class="source-group">
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-icon">📷</span>
+            <div>
+              <span class="toggle-title">Webcam Overlay</span>
+              <span class="toggle-sub">Face cam in corner</span>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="webcamToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+        <div class="sub-options" id="webcamSubOptions" style="display:none">
+          <div class="section-label" style="margin-top:0">POSITION</div>
+          <div class="position-grid">
+            <button class="pos-btn" data-pos="top-left">↖</button>
+            <button class="pos-btn" data-pos="top-right">↗</button>
+            <button class="pos-btn active" data-pos="bottom-left">↙</button>
+            <button class="pos-btn" data-pos="bottom-right">↘</button>
+          </div>
+          <div class="section-label" style="margin-top:10px">SIZE</div>
+          <input type="range" class="mini-range" id="webcamSize" min="100" max="320" value="180" />
+          <span class="range-val" id="webcamSizeVal">180px</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output settings -->
+    <div class="sidebar-section">
+      <div class="section-label">OUTPUT</div>
+      <div class="source-group">
+        <select class="mini-select full-width" id="outputFormat">
+          <option value="webm">WebM (Recommended)</option>
+          <option value="mp4">MP4 (Compatibility)</option>
+        </select>
+      </div>
+      <div class="source-group">
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-icon">⬡</span>
+            <div>
+              <span class="toggle-title">Watermark</span>
+              <span class="toggle-sub">Andromeda branding</span>
+            </div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="watermarkToggle">
+            <span class="slider"></span>
+          </label>
+        </label>
+        <div class="sub-options" id="watermarkSubOptions" style="display:none">
+          <input type="text" class="mini-input" id="watermarkText" value="ANDROMEDA" placeholder="Brand name" maxlength="20" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar version -->
+    <div class="sidebar-footer">
+      <span>Andromeda Recorder v1.0</span>
+      <span>MVP Build</span>
+    </div>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <main class="main-content">
+
+    <!-- Preview area -->
+    <div class="preview-area">
+      <!-- Idle state -->
+      <div class="preview-idle" id="previewIdle">
+        <div class="idle-icon">⬡</div>
+        <p class="idle-title">Ready to Record</p>
+        <p class="idle-sub">Configure your sources in the panel,<br>then press Start to begin your session.</p>
+        <div class="idle-browser-note">
+          <span>🔒</span>
+          <span>Browser will request screen & mic permissions on first record</span>
+        </div>
+      </div>
+
+      <!-- Live preview video (screen share preview) -->
+      <video id="previewVideo" class="preview-video" autoplay muted playsinline></video>
+
+      <!-- Webcam overlay — draggable / resizable -->
+      <div class="webcam-overlay" id="webcamOverlay" style="display:none">
+        <video id="webcamVideo" autoplay muted playsinline></video>
+        <div class="webcam-resize-handle" id="webcamResizeHandle"></div>
+        <div class="webcam-drag-hint">⤢ drag</div>
+      </div>
+
+      <!-- Countdown overlay -->
+      <div class="countdown-overlay" id="countdownOverlay" style="display:none">
+        <div class="countdown-num" id="countdownNum">3</div>
+        <div class="countdown-label">Starting in...</div>
+      </div>
+
+      <!-- Paused overlay -->
+      <div class="paused-overlay" id="pausedOverlay" style="display:none">
+        <div class="paused-icon">⏸</div>
+        <div class="paused-label">PAUSED</div>
+      </div>
+    </div>
+
+    <!-- ── CONTROL BAR ── -->
+    <div class="control-bar">
+
+      <!-- Timer section -->
+      <div class="control-timer">
+        <div class="timer-display" id="timerDisplay">00:00:00</div>
+        <div class="timer-sub" id="timerSub">Duration</div>
+      </div>
+
+      <!-- Main controls -->
+      <div class="control-center">
+        <!-- START button -->
+        <button class="ctrl-btn btn-start" id="btnStart" title="Start Recording (Space)">
+          <span class="btn-icon">⏺</span>
+          <span class="btn-label">START</span>
+        </button>
+
+        <!-- PAUSE button -->
+        <button class="ctrl-btn btn-pause" id="btnPause" title="Pause Recording (Space)" disabled>
+          <span class="btn-icon">⏸</span>
+          <span class="btn-label">PAUSE</span>
+        </button>
+
+        <!-- STOP button -->
+        <button class="ctrl-btn btn-stop" id="btnStop" title="Stop Recording (S)" disabled>
+          <span class="btn-icon">⏹</span>
+          <span class="btn-label">STOP</span>
+        </button>
+
+        <!-- Cancel button -->
+        <button class="ctrl-btn btn-cancel" id="btnCancel" title="Cancel & Discard (Esc)" disabled>
+          <span class="btn-icon">✕</span>
+          <span class="btn-label">CANCEL</span>
+        </button>
+      </div>
+
+      <!-- Status section -->
+      <div class="control-status">
+        <div class="status-pill" id="statusPill">
+          <span class="status-dot dot-idle"></span>
+          <span class="status-text" id="statusText">Ready</span>
+        </div>
+        <div class="status-size" id="statusSize">0.0 MB</div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ── RECORDINGS PANEL ── -->
+  <div class="recordings-panel">
+    <div class="recordings-header">
+      <span class="recordings-title">Recordings</span>
+      <span class="recordings-count" id="recordingsCount">0</span>
+    </div>
+    <div class="recordings-list" id="recordingsList">
+      <div class="recordings-empty">
+        <span>No recordings yet</span>
+        <span class="recordings-empty-sub">Start a session to capture your first video</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ EDITOR MODAL ══ -->
+<div class="modal-backdrop" id="editorBackdrop" style="display:none">
+  <div class="editor-modal">
+    <div class="editor-header">
+      <div class="editor-title">
+        <span class="editor-icon">✂️</span>
+        <span id="editorFilename">recording.webm</span>
+      </div>
+      <button class="editor-close" id="editorClose">✕</button>
+    </div>
+
+    <!-- Editor preview -->
+    <div class="editor-preview">
+      <video id="editorVideo" controls></video>
+    </div>
+
+    <!-- Trim controls -->
+    <div class="editor-trim-section">
+      <div class="trim-label">TRIM</div>
+      <div class="trim-timeline" id="trimTimeline">
+        <div class="trim-track">
+          <!-- Trim handles -->
+          <div class="trim-handle trim-start" id="trimStart"></div>
+          <div class="trim-selection" id="trimSelection"></div>
+          <div class="trim-handle trim-end" id="trimEnd"></div>
+          <!-- Playhead -->
+          <div class="trim-playhead" id="trimPlayhead"></div>
+        </div>
+        <div class="trim-time-labels">
+          <span id="trimStartLabel">0:00</span>
+          <span id="trimEndLabel">0:00</span>
+        </div>
+      </div>
+      <div class="trim-values">
+        <div class="trim-val-group">
+          <label>Start</label>
+          <input type="number" class="trim-input" id="trimStartInput" value="0" min="0" step="0.1" />
+          <span>sec</span>
+        </div>
+        <div class="trim-val-group">
+          <label>End</label>
+          <input type="number" class="trim-input" id="trimEndInput" value="0" min="0" step="0.1" />
+          <span>sec</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Editor actions -->
+    <div class="editor-actions">
+      <button class="editor-btn btn-preview-trim" id="btnPreviewTrim">
+        ▶ Preview Trim
+      </button>
+      <button class="editor-btn btn-apply-trim" id="btnApplyTrim">
+        ✂ Export Trimmed
+      </button>
+      <button class="editor-btn btn-download-original" id="btnDownloadOriginal">
+        ↓ Download Original
+      </button>
+    </div>
+
+    <div class="editor-note">
+      Note: Browser-based trim uses metadata markers. For frame-perfect cuts, use the exported file in a video editor like DaVinci Resolve or Kdenlive.
+    </div>
+  </div>
+</div>
+
+<!-- ══ TOAST NOTIFICATION ══ -->
+<div class="toast" id="toast"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
